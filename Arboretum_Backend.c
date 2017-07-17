@@ -15,9 +15,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <mysql/mysql.h>
 
 #define IPPROTO_DEFAULT 0
 #define MAX_CONNECTIONS 1
+#define NUM_SENSORS 6
 
 typedef struct sockaddr_in sockaddr_in_s;
 
@@ -27,13 +29,21 @@ void stderror(char *msg) {
 }
 
 int main(int argc, char **argv) {
+  FILE *fp = NULL;
   sockaddr_in_s server_addr;
   sockaddr_in_s client_addr;
   socklen_t client_addr_len;
-  char sendstr[101] = "WHATSUP!!!\r\n";
+  char **sendstr = calloc(NUM_SENSORS, sizeof(char *));
+  sendstr[0] = "r1\r";
+  sendstr[1] = "r2\r";
+  sendstr[2] = "r3\r";
+  sendstr[3] = "r4\r";
+  sendstr[4] = "r5\r";
+  sendstr[5] = "r6\r";
+
 
   if (argc != 2) {
-    fprintf(stderr, "Usage: argv[0] port");
+    fprintf(stderr, "Usage: %s port\n", argv[0]);
   }
 
   int port = atoi(argv[1]);
@@ -58,16 +68,75 @@ int main(int argc, char **argv) {
   }
 
   for (;;) {
+
+    /* // mysql example
+
+       MYSQL *conn;
+       MYSQL_RES *res;
+       MYSQL_ROW row;
+
+       char *server = "localhost";
+       char *user = "root";
+       char *password = "PASSWORD";
+       char *database = "mysql";
+
+       conn = mysql_init(NULL);
+
+    // Connect to database
+    if (!mysql_real_connect(conn, server,
+    user, password, database, 0, NULL, 0)) {
+    fprintf(stderr, "%s\n", mysql_error(conn));
+    exit(1);
+    }
+
+    // send SQL query
+    if (mysql_query(conn, "show tables")) {
+    fprintf(stderr, "%s\n", mysql_error(conn));
+    exit(1);
+    }
+
+    res = mysql_use_result(conn);
+
+    // output table name
+    printf("MySQL Tables in mysql database:\n");
+    while ((row = mysql_fetch_row(res)) != NULL)
+    printf("%s \n", row[0]);
+
+    // close connection
+    mysql_free_result(res);
+    mysql_close(conn);
+    */ // end unused mysql example
+
     client_addr_len = sizeof(client_addr);
     int clientfd = accept(sockfd, (struct sockaddr *) &client_addr, &client_addr_len);
     if (clientfd == -1) {
       stderror("Couldn't accept connection");
     }
+    int sendcount = 0;
     while (1) {
-      if (send(clientfd, sendstr, strlen(sendstr), 0) != strlen(sendstr)) {
+      if (send(clientfd, sendstr[sendcount], strlen(sendstr[sendcount]), 0) != strlen(sendstr[sendcount])) {
         stderror("Couldn't send packet");
       }
-      sleep(2);
+      sendcount = (sendcount + 1) % NUM_SENSORS;
+      char recvstr[101];
+      int recvstatus = recv(clientfd, recvstr, 100, MSG_DONTWAIT);
+      if (recvstatus == -1 && errno != EWOULDBLOCK) { //non-blocking
+        stderror("Couldn't receive packet");
+      }
+      if (recvstatus != -1) printf("Received Packet: %s\n", recvstr);
+      else printf("No packet received\n");
+      sleep(5);
+      fp = fopen("stop-arboretum", "r");
+      if (fp != NULL) {
+        fclose(fp);
+        break;
+      }
+    }
+    close(clientfd);
+    fp = fopen("stop-arboretum", "r");
+    if (fp != NULL) {
+      fclose(fp);
+      break;
     }
   }
 
@@ -75,6 +144,7 @@ int main(int argc, char **argv) {
   if (closestatus == -1) {
     stderror("Couldn't close socket");
   }
-  printf("It's beautiful\n");
+  free(sendstr);
+  printf("It's lit\n");
   return 0;
 }
