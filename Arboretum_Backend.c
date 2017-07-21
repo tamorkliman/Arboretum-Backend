@@ -114,18 +114,26 @@ int main(int argc, char **argv) {
     }
     int sendcount = 0;
     while (1) {
+      /*
       if (send(clientfd, sendstr[sendcount], strlen(sendstr[sendcount]), 0) != strlen(sendstr[sendcount])) {
         stderror("Couldn't send packet");
       }
+      */
       sendcount = (sendcount + 1) % NUM_SENSORS;
       char recvstr[101];
       int recvstatus = recv(clientfd, recvstr, 100, MSG_DONTWAIT);
       if (recvstatus == -1 && errno != EWOULDBLOCK) { //non-blocking
         stderror("Couldn't receive packet");
       }
-      if (recvstatus != -1) printf("Received Packet: %s\n", recvstr);
-      else printf("No packet received\n");
-      sleep(5);
+      if (recvstatus != -1) {
+        printf("Received Packet: %s\n", recvstr);
+        if (send(clientfd, recvstr, strlen(recvstr), 0) != strlen(recvstr)) {
+          stderror("Couldn't echo packet");
+        }
+      } else {
+        printf("No packet received\n");
+        sleep(10);
+      }
       fp = fopen("stop-arboretum", "r");
       if (fp != NULL) {
         fclose(fp);
