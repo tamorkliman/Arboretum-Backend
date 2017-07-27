@@ -112,27 +112,33 @@ int main(int argc, char **argv) {
     if (clientfd == -1) {
       stderror("Couldn't accept connection");
     }
+    printf("Started new connection with client\n");
     int sendcount = 0;
+    int attemptsend = 1;
     while (1) {
-      /*
-      if (send(clientfd, sendstr[sendcount], strlen(sendstr[sendcount]), 0) != strlen(sendstr[sendcount])) {
+      if (attemptsend && send(clientfd, sendstr[sendcount], strlen(sendstr[sendcount]), 0) != strlen(sendstr[sendcount])) {
         stderror("Couldn't send packet");
       }
-      */
-      sendcount = (sendcount + 1) % NUM_SENSORS;
+      attemptsend = 0;
       char recvstr[101];
+
+      sleep(2);
+
       int recvstatus = recv(clientfd, recvstr, 100, MSG_DONTWAIT);
       if (recvstatus == -1 && errno != EWOULDBLOCK) { //non-blocking
         stderror("Couldn't receive packet");
-      }
-      if (recvstatus != -1) {
+      } else if (recvstatus != -1 && recvstatus != 0) {
+        recvstr[recvstatus] = '\0'; // theoretically shouldn't do anything
         printf("Received Packet: %s\n", recvstr);
-        if (send(clientfd, recvstr, strlen(recvstr), 0) != strlen(recvstr)) {
+        attemptsend = 1; // send next packet
+        sendcount = (sendcount + 1) % NUM_SENSORS; // select next packet to send
+        if (0 && send(clientfd, recvstr, strlen(recvstr), 0) != strlen(recvstr)) {
           stderror("Couldn't echo packet");
         }
-      } else {
+      } else if (recvstatus != 0) {
         printf("No packet received\n");
-        sleep(10);
+      } else {
+        break; // disconnected
       }
       fp = fopen("stop-arboretum", "r");
       if (fp != NULL) {
@@ -140,7 +146,8 @@ int main(int argc, char **argv) {
         break;
       }
     }
-    close(clientfd);
+    close(clientfd); //we don't do that because it's already closed
+    printf("Disconnected from client\n");
     fp = fopen("stop-arboretum", "r");
     if (fp != NULL) {
       fclose(fp);
@@ -153,6 +160,6 @@ int main(int argc, char **argv) {
     stderror("Couldn't close socket");
   }
   free(sendstr);
-  printf("It's lit\n");
+  printf("Server Closed\n");
   return 0;
 }
