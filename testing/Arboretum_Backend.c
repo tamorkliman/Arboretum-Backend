@@ -131,7 +131,9 @@ int main(int argc, char **argv) {
         recvstr[recvstatus] = '\0'; // theoretically shouldn't do anything
         printf("Received Packet: %s\n", recvstr);
         attemptsend = 1; // send next packet
-        sendcount = (sendcount + 1) % NUM_SENSORS; // select next packet to send
+        // FIXME: change back to NUMSENSORS
+        //sendcount = (sendcount + 1) % NUM_SENSORS; // select next packet to send
+        sendcount = (sendcount + 1) % 2; // select next packet to send
         if (0 && send(clientfd, recvstr, strlen(recvstr), 0) != strlen(recvstr)) {
           stderror("Couldn't echo packet");
         }
