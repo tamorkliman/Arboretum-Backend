@@ -20,6 +20,7 @@
 #define IPPROTO_DEFAULT 0
 #define MAX_CONNECTIONS 1
 #define NUM_SENSORS 6
+#define TIMEOUT_NOPACKET 6
 
 typedef struct sockaddr_in sockaddr_in_s;
 
@@ -107,17 +108,22 @@ int main(int argc, char **argv) {
     mysql_close(conn);
     */ // end unused mysql example
 
+    int8_t no_receive_count = 0;
     client_addr_len = sizeof(client_addr);
-    int clientfd = accept(sockfd, (struct sockaddr *) &client_addr, &client_addr_len);
-    if (clientfd == -1) {
-      stderror("Couldn't accept connection");
+    int clientfd = -1;
+    while (clientfd == -1) {
+      clientfd = accept(sockfd, (struct sockaddr *) &client_addr, &client_addr_len);
+      if (clientfd == -1) {
+        printf("Couldn't accept connection, retrying...\n");
+      }
     }
     printf("Started new connection with client\n");
     int sendcount = 0;
     int attemptsend = 1;
     while (1) {
       if (attemptsend && send(clientfd, sendstr[sendcount], strlen(sendstr[sendcount]), 0) != strlen(sendstr[sendcount])) {
-        stderror("Couldn't send packet");
+        printf("Connection error\n");
+        break;
       }
       attemptsend = 0;
       char recvstr[101];
@@ -134,9 +140,7 @@ int main(int argc, char **argv) {
         // FIXME: change back to NUMSENSORS
         //sendcount = (sendcount + 1) % NUM_SENSORS; // select next packet to send
         sendcount = (sendcount + 1) % 2; // select next packet to send
-        if (0 && send(clientfd, recvstr, strlen(recvstr), 0) != strlen(recvstr)) {
-          stderror("Couldn't echo packet");
-        }
+        no_receive_count = -1; // will become 0 at the end of the loop
       } else if (recvstatus != 0) {
         printf("No packet received\n");
       } else {
@@ -147,8 +151,12 @@ int main(int argc, char **argv) {
         fclose(fp);
         break;
       }
+      if (no_receive_count++ > TIMEOUT_NOPACKET) {
+        printf("Didn't receive packet\n");
+        break;
+      }
     }
-    close(clientfd); //we don't do that because it's already closed
+    if (clientfd != -1) close(clientfd); //we don't do that because it's already closed
     printf("Disconnected from client\n");
     fp = fopen("stop-arboretum", "r");
     if (fp != NULL) {

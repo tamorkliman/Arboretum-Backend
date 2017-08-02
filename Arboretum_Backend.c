@@ -16,10 +16,12 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <mysql/mysql.h>
+#include <time.h>
 
 #define IPPROTO_DEFAULT 0
 #define MAX_CONNECTIONS 1
 #define NUM_SENSORS 6
+#define TIMEOUT_NOPACKET 6
 
 typedef struct sockaddr_in sockaddr_in_s;
 
@@ -40,7 +42,6 @@ int main(int argc, char **argv) {
   sendstr[3] = "r4\r";
   sendstr[4] = "r5\r";
   sendstr[5] = "r6\r";
-
 
   if (argc != 2) {
     fprintf(stderr, "Usage: %s port\n", argv[0]);
@@ -67,57 +68,31 @@ int main(int argc, char **argv) {
     stderror("Couldn't listen on socket");
   }
 
+  MYSQL *conn;
+
+  char *server = "db-01.soe.ucsc.edu";
+  char *user = "arboretum_data";
+  char *password = "icherdak_backend";
+  char *database = "arboretum_data";
+
   for (;;) {
 
-    /* // mysql example
-
-       MYSQL *conn;
-       MYSQL_RES *res;
-       MYSQL_ROW row;
-
-       char *server = "localhost";
-       char *user = "root";
-       char *password = "PASSWORD";
-       char *database = "mysql";
-
-       conn = mysql_init(NULL);
-
-    // Connect to database
-    if (!mysql_real_connect(conn, server,
-    user, password, database, 0, NULL, 0)) {
-    fprintf(stderr, "%s\n", mysql_error(conn));
-    exit(1);
-    }
-
-    // send SQL query
-    if (mysql_query(conn, "show tables")) {
-    fprintf(stderr, "%s\n", mysql_error(conn));
-    exit(1);
-    }
-
-    res = mysql_use_result(conn);
-
-    // output table name
-    printf("MySQL Tables in mysql database:\n");
-    while ((row = mysql_fetch_row(res)) != NULL)
-    printf("%s \n", row[0]);
-
-    // close connection
-    mysql_free_result(res);
-    mysql_close(conn);
-    */ // end unused mysql example
-
+    int8_t no_receive_count = 0;
     client_addr_len = sizeof(client_addr);
-    int clientfd = accept(sockfd, (struct sockaddr *) &client_addr, &client_addr_len);
-    if (clientfd == -1) {
-      stderror("Couldn't accept connection");
+    int clientfd = -1;
+    while (clientfd == -1) {
+      clientfd = accept(sockfd, (struct sockaddr *) &client_addr, &client_addr_len);
+      if (clientfd == -1) {
+        printf("Couldn't accept connection, retrying...\n");
+      }
     }
     printf("Started new connection with client\n");
     int sendcount = 0;
     int attemptsend = 1;
     while (1) {
       if (attemptsend && send(clientfd, sendstr[sendcount], strlen(sendstr[sendcount]), 0) != strlen(sendstr[sendcount])) {
-        stderror("Couldn't send packet");
+        printf("Connection error\n");
+        break;
       }
       attemptsend = 0;
       char recvstr[101];
@@ -131,10 +106,51 @@ int main(int argc, char **argv) {
         recvstr[recvstatus] = '\0'; // theoretically shouldn't do anything
         printf("Received Packet: %s\n", recvstr);
         attemptsend = 1; // send next packet
-        sendcount = (sendcount + 1) % NUM_SENSORS; // select next packet to send
-        if (0 && send(clientfd, recvstr, strlen(recvstr), 0) != strlen(recvstr)) {
-          stderror("Couldn't echo packet");
+        // FIXME: change back to NUMSENSORS
+        //sendcount = (sendcount + 1) % NUM_SENSORS; // select next packet to send
+        sendcount = (sendcount + 1) % 2; // select next packet to send
+        no_receive_count = -1; // will become 0 at the end of the loop
+
+        if (!strchr(recvstr, '=')) {
+          printf("Invalid data syntax: skipping DB insert\n");
+          continue;
         }
+
+        conn = mysql_init(NULL);
+
+        // Connect to database
+        if (!mysql_real_connect(conn, server,
+              user, password, database, 0, NULL, 0)) {
+          fprintf(stderr, "Failed to insert to DB: %s\n", mysql_error(conn));
+          continue;
+        }
+
+        // insert data into database
+        char query_str[256];
+        query_str[255] = '\0';
+        char *device_name = strtok(recvstr, "=\r\n");
+        time_t t = time(NULL);
+        struct tm tm = *localtime(&t);
+        char timestr[32];
+        sprintf(timestr, "%04d%02d%02d::%02d%02d%02d", tm.tm_year + 1900,
+            tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+        if (device_name) {} // stop compiler from complaining
+        snprintf(query_str, 255, "%s ('%s', '%s', '%s')",
+            "INSERT INTO device_data VALUES",
+            "1",
+            strtok(NULL, "\r\n"),
+            timestr);
+        if (mysql_query(conn, query_str)) {
+          //stderror((char *) mysql_error(conn));
+          fprintf(stderr, "Failed to insert to DB: %s\n", mysql_error(conn));
+          //exit(1);
+        } else {
+          printf("DB insertion successful\n");
+        }
+
+        //disconnect from DB
+        mysql_close(conn);
+
       } else if (recvstatus != 0) {
         printf("No packet received\n");
       } else {
@@ -145,8 +161,12 @@ int main(int argc, char **argv) {
         fclose(fp);
         break;
       }
+      if (no_receive_count++ > TIMEOUT_NOPACKET) {
+        printf("Didn't receive packet\n");
+        break;
+      }
     }
-    close(clientfd); //we don't do that because it's already closed
+    if (clientfd != -1) close(clientfd); //we don't do that because it's already closed
     printf("Disconnected from client\n");
     fp = fopen("stop-arboretum", "r");
     if (fp != NULL) {

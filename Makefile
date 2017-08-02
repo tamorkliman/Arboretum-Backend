@@ -2,12 +2,17 @@ SRC=Arboretum_Backend.c
 OBJ=$(SRC:%.c=%.o)
 EXE=Arboretum_Backend
 
+CFLAGS=-Wall -Werror -Wpedantic
+CFLAGS+=`mysql_config --cflags`
+LFLAGS=`mysql_config --libs`
+
 run: compile
 	./$(EXE) 1234
 
 compile:
-	gcc -c -Wall -Werror -Wpedantic -std=c99 $(SRC)
-	gcc -o $(EXE) $(OBJ)
+	gcc $(SRC) -c $(CFLAGS)
+	gcc $(OBJ) -o $(EXE) $(LFLAGS)
+	#gcc $(SRC) -o $(EXE) $(CFLAGS) $(LFLAGS)
 
 clean:
 	rm -f *.o
