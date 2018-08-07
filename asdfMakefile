@@ -1,0 +1,8 @@
+CC = gcc
+CFLAGS=-Wall -std=c99
+
+Arboretum-Backend: Sensor_List.o Sensor_List.o Ping_Sensors.o parser.o
+	$(CC) -o Arboretum-Backend Sensor_List.o Ping_Sensors.o parser.o $(CFLAGS)
+
+clean:
+	rm *.o Arboretum-Backend

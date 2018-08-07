@@ -1,6 +1,6 @@
 /*
  *Written by
- *Isaak Cherdak
+ *Isaak Cherdak and Talmor Kliman
  *
  *Credit for general lessons to:
  *http://www.csd.uoc.gr/~hy556/material/tutorials/cs556-3rd-tutorial.pdf
@@ -45,7 +45,9 @@ int main(int argc, char **argv) {
   //   sendstr[i] = calloc(100,sizeof(char));
   // }
   char command[100];
+  char messagestorage[256];
   memset(command,'\0',100);
+  memset(messagestorage,'\0',100);
   // char *commandS = calloc(100,sizeof(char));
   // char *commandM = calloc(100,sizeof(char));
   // char *commandR = calloc(100,sizeof(char));
@@ -120,7 +122,7 @@ int main(int argc, char **argv) {
   startmonth = tm.tm_mon + 1;
   printf("sec: %d\n,min: %d\n,hour: %d\n,day: %d\n,month: %d\n",startsec,startmin,starthour,startday,startmonth);
 //------------------ TEST CODE FOR PING QUERY ----------------------
-   static MYSQL *conn;
+  static MYSQL *conn;
 
   char *server = "db-01.soe.ucsc.edu";
   char *user = "arboretum_data";
@@ -187,15 +189,39 @@ MYSQL_ROW row = mysql_fetch_row(result);
       printf("WebMONTH: %s\n", webuserpingtimingMONTH);
       mysql_close(conn);
 
-      // if()
-  endsec = startsec + atoi(webuserpingtimingSEC);
-  endmin = tm.tm_min + atoi(webuserpingtimingMIN);
-  endhour = tm.tm_hour + atoi(webuserpingtimingHOUR);
-  endday = tm.tm_mday + atoi(webuserpingtimingDAY);
-  endmonth = tm.tm_mon + 1 + atoi(webuserpingtimingMONTH);
+          // if()
+      time_t start_t = time(NULL);
+      long long int computed_time_seconds = 0;
+      computed_time_seconds += (atoi(webuserpingtimingSEC));
+      computed_time_seconds += (atoi(webuserpingtimingMIN)*60);
+      computed_time_seconds += (atoi(webuserpingtimingHOUR)*3600);
+      computed_time_seconds += (atoi(webuserpingtimingDAY)*86400);
+      computed_time_seconds += (atoi(webuserpingtimingMONTH)*2592000);
+      time_t mystart = time(NULL);
+        while(1){
+          if(difftime(time(NULL),start_t) >= computed_time_seconds){
+            start_t = time(NULL);
+            break;
+          }
+      }
+      time_t myend = time(NULL);
+      printf("difftime %f\n", difftime(myend,mystart));
+
+      endsec = tm.tm_sec;
+      endmin = tm.tm_min;
+      endhour = tm.tm_hour;
+      endday = tm.tm_mday;
+      endmonth = tm.tm_mon + 1;
+
+
+
+              
   //int monthindex = 0;
   
   printf("sec: %d\n,min: %d\n,hour: %d\n,day: %d\n,month: %d\n",endsec,endmin,endhour,endday,endmonth);
+     
+
+
   // MYSQL *conn;
 
   // char *server = "db-01.soe.ucsc.edu";
@@ -228,26 +254,8 @@ MYSQL_ROW row = mysql_fetch_row(result);
               // tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec
     while (1) {
       printf("sendcount = %d\n",sendcount);
-      // if(sendcount == 0){
-      //     if (attemptsend && send(clientfd, sendstr[sendcount], strlen(sendstr[sendcount]), 0) != strlen(sendstr[sendcount])) {
-      //       printf("Connection error\n");
-      //       break;
-      //     }
-      // } else if (sendcount == 1){
-      //     if (attemptsend && send(clientfd, sendstr[sendcount], strlen(sendstr[sendcount]), 0) != strlen(sendstr[sendcount])) {
-      //       printf("Connection error\n");
-      //       break;
-      //     }
-      // } else if (sendcount >= 2){
-      //     if (attemptsend && send(clientfd, sendstr[sendcount], strlen(sendstr[sendcount]), 0) != strlen(sendstr[sendcount])) {
-      //       printf("Connection error\n");
-      //       break;
-      //     }
-      // }
       if(sendcount == 0) strcpy(command, "s1\r");
-      // if(sendcount == 1) strcpy(command, "m1\r");
-      // if(sendcount == 2) strcpy(command, "r1\r");
-
+      printf("send string: %s\n", command);
       if (attemptsend && send(clientfd, command, strlen(command), 0) != strlen(command)) {
           printf("Connection error\n");
           break;
@@ -264,6 +272,7 @@ MYSQL_ROW row = mysql_fetch_row(result);
       } else if (recvstatus != -1 && recvstatus != 0) {
         recvstr[recvstatus] = '\0'; // theoretically shouldn't do anything
         printf("Received Packet: %s\n", recvstr);
+        strcpy(messagestorage,recvstr);
         attemptsend = 1; // send next packet
         no_receive_count = -1;
         if(sendcount == 0) { //get the identification from device (SensorNode)
@@ -284,12 +293,9 @@ MYSQL_ROW row = mysql_fetch_row(result);
                 sensorIndex++;
               //}
         } else if(sendcount >= 2){ //get sensor readings
-              int o = sensornode_exists(&sensorNodeList, DeviceLocation);
-              printf("\n sensornode exists %d\n",o);
-              if(sendcount == 2) add_sensornode(&sensorNodeList, DeviceLocation);
-              p = parse_sensor_info(recvstr);
-              add_sensor(0,p->name, p->type, p->reading);
-              print_sensornode_list(&sensorNodeList);
+              // int o = sensornode_exists(&sensorNodeList, DeviceLocation);
+              // printf("\n sensornode exists %d\n",o);
+
               printf("hereeeeee3\n");
               if(sensorIndex < 10){
                  sprintf(command,"r%c\r\n",(uint8_t)(sensorIndex) + '0');  //next command 
@@ -318,34 +324,48 @@ MYSQL_ROW row = mysql_fetch_row(result);
                 }
               }
           // p = parse_sensor_info(recvstr);
-          printf("here motherfucker\n");
-          //printf("name: %s\ntype: %s\nreading: %f\n", p->name, p->type, p->reading);
+          //printf("here motherfucker\n");
           sendcount++;
           
-            
-            //int nodeindex = 0;
-            // int o = sensornode_exists(&sensorNodeList, DeviceLocation);
-            //   printf("\n sensornode exists %d\n",o);
-            //   add_sensornode(&sensorNodeList, DeviceLocation);
-            //   print_sensornode_list(&sensorNodeList);
-              // if(sensornode_exists(&sensorNodeList, DeviceLocation)){
-              //   printf("here1\n");
-              //   nodeindex = find_sensornode_index(&sensorNodeList, DeviceLocation);
-              //   printf("here2\n");
-              //   if(sensor_exists(&sensorNodeList.List[nodeindex], p->name)){
-              //     printf("here3\n");
-              //     update_sensor_reading(&sensorNodeList.List[nodeindex], p->name, p->reading);
-              //   } else {
-              //     printf("here4\n");
-              //     add_sensor(&sensorNodeList.List[nodeindex],p->name, p->type, p->reading);
-              //   }
-              // } else {
-              //   printf("here5");
-              //   add_sensornode(&sensorNodeList, DeviceLocation);
-              //   nodeindex = find_sensornode_index(&sensorNodeList, DeviceLocation);
-              //   add_sensor(&sensorNodeList.List[nodeindex],p->name, p->type, p->reading);
+              p = parse_sensor_info(recvstr);
+
+              //printf("name: %s\ntype: %s\nreading: %f\n", p->name, p->type, p->reading);
+              printf("numtokens in recieve message %d\n",p->numtokens);
+
+             
+            if(p->numtokens == 3){
+              int nodeindex = 0;
+              if(sensornode_exists(&sensorNodeList, DeviceLocation)){
+                printf("here1\n");
+                nodeindex = find_sensornode_index(&sensorNodeList, DeviceLocation);
+                printf("here2\n");
+                if(sensor_exists(&sensorNodeList.List[nodeindex], p->name)){
+                  printf("here3\n");
+                  update_sensor_reading(&sensorNodeList.List[nodeindex], p->name, p->reading);
+                } else {
+                  add_sensor(&sensorNodeList.List[nodeindex],p->name, p->type, p->reading);
+                  printf("here4\n");
+                }
+              } else {
+                printf("here5");
+                add_sensornode(&sensorNodeList, DeviceLocation);
+                nodeindex = find_sensornode_index(&sensorNodeList, DeviceLocation);
+                add_sensor(&sensorNodeList.List[nodeindex],p->name, p->type, p->reading);
+              }
+            }  else {
+              printf("incorrect amount of tokens in message from Sensornode (Arduino)\n");
+              printf("message: %s\n",messagestorage);
+            }
+
+              // int pingnodeindex = 0;
+              // if(sensornode_ping_exists(&PingList, DeviceLocation)){
+              //   pingnodeindex = find_sensornode_index(&PingList, DeviceLocation);
+              //    }else {
+              //     add_new_sensor_ping_timing(&PingList,p->name);
+              //    }
               // }
-             // print_sensornode_list(&sensorNodeList);
+
+              // print_sensornode_list(&sensorNodeList);
 
           //sprintf(readcommand,"r%c\r\n",(uint8_t)(sensorIndex) + '0');
           
@@ -378,12 +398,9 @@ MYSQL_ROW row = mysql_fetch_row(result);
           //     }
 
           if(sensorIndex > NumSensorsOnDevice){ //once you get all sensor data from a single device restart
-             //print_sensor_list(&sensorlist);
              sendcount = 0; //start the conversation over
              sensorIndex = 1;
              NumSensorsOnDevice = 0;
-             //memset(readcommand, '\0',100);
-             //strcpy(readcommand,"r1\r"); //restart the iteration through sensors
              memset(DeviceLocation, '\0',100);
           }
           printf("sensorIndex = %d\n",sensorIndex);
