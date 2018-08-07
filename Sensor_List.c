@@ -14,7 +14,11 @@ SensorNodeList create_sensornode_list(void){
 	SensorNodeList newSensorNodeList;
 	newSensorNodeList.NumSensorNodes = 0;
 	for(int i = 0; i < MAX_SENSORNODES; i++){
+<<<<<<< HEAD
 		newSensorNodeList.List = calloc(MAX_SENSORNODES,sizeof(SensorList *));
+=======
+		newSensorNodeList.List = calloc(MAX_SENSORNODES,sizeof(SensorList));
+>>>>>>> b928890d4b2e4b9cfea5a4e986082324300610db
 	}
 	return newSensorNodeList;
 }
@@ -33,7 +37,11 @@ SensorList create_sensor_list(char *nodelocation){
 	newSensorList.SensorNodeLocation = malloc(MAX_SENSORNODENAME_SIZE*sizeof(char));
 	newSensorList.SensorNodeLocation = nodelocation;
 	for(int i = 0; i < MAX_SENSORS; i++){
+<<<<<<< HEAD
 		newSensorList.List = calloc(1,sizeof(Sensor *));
+=======
+		newSensorList.List = calloc(MAX_SENSORS,sizeof(Sensor));
+>>>>>>> b928890d4b2e4b9cfea5a4e986082324300610db
 	}
 	return newSensorList;
 }
@@ -63,20 +71,33 @@ Sensor create_sensor(char name[], char type[], float sensorreading){
 }
 
 void add_sensor(SensorList *sensorlist, char name[], char type[], float sensorreading){
+<<<<<<< HEAD
 	int num = sensorlist->NumSensors;
 	sensorlist->List[num] = create_sensor(name, type, sensorreading);
 	printf("numsensors: %d\n",num);
+=======
+	printf("heree6\n");
+	//int num = sensorlist->NumSensors;
+	//printf("heree61");
+	sensorlist->List[0] = create_sensor(name, type, sensorreading);
+	printf("heree62");
+>>>>>>> b928890d4b2e4b9cfea5a4e986082324300610db
 	sensorlist->NumSensors += 1;
 }
 
 int sensor_exists(SensorList *sensorlist, char name[]){
 	printf("heree7\n");
 	int foundSensorIndex = 0;
+<<<<<<< HEAD
 	printf("name: %s\n",name);
 	printf("listname: %s\n",sensorlist->List[0].NameOfSensor);
 	for(int i = 0; i < sensorlist->NumSensors; i++){
 		printf("i = %d\n",i);
 		//if(!sensorlist->List[i].NameOfSensor) break; //protect from segfault
+=======
+	for(int i = 0; i < sensorlist->NumSensors; i++){
+		//if(sensorlist->List[i].NameOfSensor == '\0') break; //protect from segfault
+>>>>>>> b928890d4b2e4b9cfea5a4e986082324300610db
 		if(strcmp(sensorlist->List[i].NameOfSensor, name) == 0){
 			foundSensorIndex = 1;
 			break;
@@ -102,7 +123,11 @@ int find_sensornode_index(SensorNodeList *nodelist, char *sensornodename){
   int nodeindex = 0;
   for(int i = 0; i < nodelist->NumSensorNodes; i++){
     if(strcmp(sensornodename,nodelist->List[i].SensorNodeLocation) == 0){
+<<<<<<< HEAD
         nodeindex = i;
+=======
+        nodeindex = 1;
+>>>>>>> b928890d4b2e4b9cfea5a4e986082324300610db
         break;
     }
   }

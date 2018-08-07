@@ -14,8 +14,12 @@ typedef struct Parser{
 	int minutes;
 	int days;
 	int months;
+<<<<<<< HEAD
 	int seconds;
 	int numtokens;	
+=======
+	int seconds;	
+>>>>>>> b928890d4b2e4b9cfea5a4e986082324300610db
 } Parser;
 
 Parser *parse_sensor_info(char *);

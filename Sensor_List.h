@@ -40,11 +40,19 @@ int sensornode_exists(SensorNodeList *nodelist, char *sensornodename);
 
 int find_sensornode_index(SensorNodeList *nodelist, char *sensornodename);
 
+<<<<<<< HEAD
 void add_sensor(SensorList *sensorlist, char name[], char type[], float sensorreading);
 
 void update_sensor_reading(SensorList *sensorlist, char name[], float sensorreading);
 
 void remove_sensor(SensorList *sensorlist, char name[]);
+=======
+void add_sensor(SensorList *devlist, char name[], char type[], float sensorreading);
+
+void update_sensor_reading(SensorList *SensorList, char name[], float sensorreading);
+
+void remove_sensor(SensorList *devlist, char name[]);
+>>>>>>> b928890d4b2e4b9cfea5a4e986082324300610db
 
 void print_sensor_list(SensorList *sensorlist);
 

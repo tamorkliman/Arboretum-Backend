@@ -94,6 +94,7 @@ int search_sensor_type(char *nametofind){
     p->name = calloc(100, sizeof(char));
     p->type = calloc(100, sizeof(char));
     //p->reading = calloc(100, sizeof(float));
+<<<<<<< HEAD
     int numtokens = 0;
     int index = 0;
     for(index = 0; index < strlen(input_str); index++){
@@ -122,6 +123,11 @@ int search_sensor_type(char *nametofind){
     const char *token = strtok(input_str, " ");
     if (!token) { // no tokens
       printf("in !tokens\n");
+=======
+
+    const char *token = strtok(input_str, " ");
+    if (!token) { // no tokens
+>>>>>>> b928890d4b2e4b9cfea5a4e986082324300610db
       p->name = '\0';
       p->type = '\0';
       p->reading = 0.0;

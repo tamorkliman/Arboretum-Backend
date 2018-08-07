@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 SRC=Arboretum_Backend.c parser.h Sensor_List.h Ping_Sensors.h 
 OBJ=$(SRC:%.c=%.o)
 EXE=Arboretum_Backend
@@ -22,3 +23,13 @@ spotless: clean
 
 cn: cn
 	netstat -tulpn
+=======
+CC = gcc
+CFLAGS=-Wall -std=c99
+
+main: main.o Sensor_List.o
+	$(CC) -o main Arboretum-Backend.c.o Sensor_List.o Ping_Sensors.o parser.o $(CFLAGS)
+
+clean:
+	rm *.o testsensorlist
+>>>>>>> b928890d4b2e4b9cfea5a4e986082324300610db
